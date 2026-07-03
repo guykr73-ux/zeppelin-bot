@@ -192,7 +192,7 @@ class AiService {
     console.log('[AI] Calling Groq API...');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
     const key = process.env.GROQ_API_KEY;
-    const model = 'llama-3.1-8b-instant';
+    const model = 'qwen/qwen3-32b';
 
     if (!key) {
       throw new Error(`API key for Groq is missing in environment variables.`);
@@ -364,7 +364,8 @@ ${memoryString}
         }
 
         // No tool calls: LLM returned final text response
-        const textResponse = messageObj.content || '';
+        let textResponse = messageObj.content || '';
+        textResponse = textResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
         return redactCreditCards(textResponse);
 
       } catch (error) {
