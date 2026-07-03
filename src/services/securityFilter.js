@@ -33,8 +33,11 @@ export function redactCreditCards(text) {
     // Strip separators to get raw digits
     const digits = match.replace(/[\s-]/g, '');
     
-    // Validate via Luhn algorithm
-    if (isValidLuhn(digits)) {
+    // Validate prefix (Visa=4, MC=5/2, Amex=3, Discover=6) and Luhn algorithm
+    const firstDigit = digits.charAt(0);
+    const hasValidPrefix = ['3', '4', '5', '6'].includes(firstDigit) || (digits.startsWith('222') || digits.startsWith('272'));
+    
+    if (hasValidPrefix && isValidLuhn(digits)) {
       console.log('[Security] Intercepted and redacted valid credit card pattern.');
       return '[כרטיס אשראי חסום / CC REDACTED]';
     }
