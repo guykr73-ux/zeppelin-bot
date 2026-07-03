@@ -26,11 +26,9 @@ class InfoService {
     const feedUrl = 'https://www.ynet.co.il/Integration/StoryRss2.xml';
     try {
       const feed = await fetchFeed(feedUrl);
-      const items = feed.items.slice(0, 5).map(item => ({
+      const items = feed.items.slice(0, 4).map(item => ({
         title: item.title,
-        link: item.link,
-        pubDate: item.pubDate,
-        summary: item.contentSnippet || item.content || ''
+        summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>/g, '').substring(0, 100) + '...'
       }));
       return { success: true, source: 'Ynet חדשות', items };
     } catch (error) {
@@ -86,9 +84,9 @@ class InfoService {
    */
   async getSports() {
     const feeds = [
-      { name: 'Ynet ספורט', url: 'https://www.ynet.co.il/Integration/StoryRss3.xml', limit: 4 },
-      { name: 'Sky Sports F1', url: 'https://www.skysports.com/rss/12433', limit: 4 },
-      { name: 'Yahoo Sports NBA', url: 'https://sports.yahoo.com/nba/rss/', limit: 6 }
+      { name: 'Ynet ספורט', url: 'https://www.ynet.co.il/Integration/StoryRss3.xml', limit: 2 },
+      { name: 'Sky Sports F1', url: 'https://www.skysports.com/rss/12433', limit: 2 },
+      { name: 'Yahoo Sports NBA', url: 'https://sports.yahoo.com/nba/rss/', limit: 2 }
     ];
     
     const combinedItems = [];
@@ -98,9 +96,7 @@ class InfoService {
         const feed = await fetchFeed(feedConfig.url);
         const items = feed.items.slice(0, feedConfig.limit).map(item => ({
           title: item.title,
-          link: item.link,
-          pubDate: item.pubDate,
-          summary: item.contentSnippet || item.content || '',
+          summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>/g, '').substring(0, 100) + '...',
           source: feedConfig.name
         }));
         combinedItems.push(...items);
@@ -121,8 +117,8 @@ class InfoService {
    */
   async getMarketNews() {
     const feeds = [
-      { name: 'Ynet כלכלה', url: 'https://www.ynet.co.il/Integration/StoryRss6.xml', limit: 5 },
-      { name: 'Yahoo Finance עולמי', url: 'https://finance.yahoo.com/news/rssindex', limit: 5 }
+      { name: 'Ynet כלכלה', url: 'https://www.ynet.co.il/Integration/StoryRss6.xml', limit: 3 },
+      { name: 'Yahoo Finance עולמי', url: 'https://finance.yahoo.com/news/rssindex', limit: 3 }
     ];
 
     const combinedItems = [];
@@ -132,9 +128,7 @@ class InfoService {
         const feed = await fetchFeed(feedConfig.url);
         const items = feed.items.slice(0, feedConfig.limit).map(item => ({
           title: item.title,
-          link: item.link,
-          pubDate: item.pubDate,
-          summary: item.contentSnippet || item.content || '',
+          summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>/g, '').substring(0, 100) + '...',
           source: feedConfig.name
         }));
         combinedItems.push(...items);
