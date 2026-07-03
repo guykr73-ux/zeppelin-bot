@@ -226,7 +226,7 @@ class AiService {
         console.warn('⚠️ Groq llama-3.3-70b-versatile rate limit reached, falling back to llama-3.1-8b-instant...');
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         const key = process.env.GROQ_API_KEY;
-        const model = 'llama-3.1-8b-instant';
+        const model = 'qwen/qwen3-32b';
 
         const payload = {
           model: model,
