@@ -304,12 +304,42 @@ ${memoryString}
         messages.push(messageObj); // Add AI response message (which might contain tool_calls)
 
         // If there are tool calls, execute them
+        let hasToolCalls = false;
+        let parsedToolCalls = [];
+
         if (messageObj.tool_calls && messageObj.tool_calls.length > 0) {
-          console.log(`Executing ${messageObj.tool_calls.length} tool calls...`);
+          hasToolCalls = true;
+          parsedToolCalls = messageObj.tool_calls.map(tc => ({
+            id: tc.id,
+            name: tc.function.name,
+            args: JSON.parse(tc.function.arguments)
+          }));
+        } else if (messageObj.content && messageObj.content.includes('<function(')) {
+          const regex = /<function\(([^)]+)\)([\s\S]+?)><\/function>/;
+          const match = messageObj.content.match(regex);
+          if (match) {
+            try {
+              const name = match[1].trim();
+              const args = JSON.parse(match[2].trim());
+              hasToolCalls = true;
+              parsedToolCalls = [{
+                id: 'inline-tool-' + Math.random().toString(36).substr(2, 9),
+                name: name,
+                args: args,
+                isInline: true
+              }];
+            } catch (err) {
+              console.error('[AI] Failed to parse inline tool call JSON:', err.message);
+            }
+          }
+        }
+
+        if (hasToolCalls && parsedToolCalls.length > 0) {
+          console.log(`Executing ${parsedToolCalls.length} tool calls...`);
           
-          for (const toolCall of messageObj.tool_calls) {
-            const toolName = toolCall.function.name;
-            const args = JSON.parse(toolCall.function.arguments);
+          for (const toolCall of parsedToolCalls) {
+            const toolName = toolCall.name;
+            const args = toolCall.args;
             let toolResult;
 
             console.log(`Calling tool: ${toolName} with args:`, args);
@@ -321,7 +351,6 @@ ${memoryString}
               toolResult = { error: err.message };
             }
 
-            // Append the tool response back to message history
             messages.push({
               role: 'tool',
               tool_call_id: toolCall.id,
@@ -329,7 +358,6 @@ ${memoryString}
               content: JSON.stringify(toolResult)
             });
           }
-          // Continue loop to let LLM see tool results and finalize text or run more tools
           continue;
         }
 
