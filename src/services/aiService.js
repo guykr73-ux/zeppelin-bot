@@ -15,6 +15,14 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'getNews',
+      description: 'קבלת מבזקי חדשות RSS מעודכנים מהארץ ומהעולם (Get global and local Israel news flashes)',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'getSports',
       description: 'קבלת מבזקי ספורט RSS בזמן אמת (Get sports flashes)',
       parameters: { type: 'object', properties: {} }
@@ -336,6 +344,11 @@ ${memoryString}
       relevantTools.push(...TOOLS.filter(t => ['getSports'].includes(t.function.name)));
     }
     
+    // General news keywords
+    if (lowerMsg.includes('חדש') || lowerMsg.includes('עדכ') || lowerMsg.includes('אוטומצי') || lowerMsg.includes('news')) {
+      relevantTools.push(...TOOLS.filter(t => ['getNews'].includes(t.function.name)));
+    }
+
     // Memory updates
     if (lowerMsg.includes('זכור') || lowerMsg.includes('תזכור') || lowerMsg.includes('שמור') || lowerMsg.includes('קרא לי') || lowerMsg.includes('שמי') || lowerMsg.includes('קוראים לי') || lowerMsg.includes('העדפה') || lowerMsg.includes('העדפות') || lowerMsg.includes('קול') || lowerMsg.includes('voice')) {
       relevantTools.push(...TOOLS.filter(t => ['updateLongTermMemory'].includes(t.function.name)));
