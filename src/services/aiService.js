@@ -192,7 +192,7 @@ class AiService {
     console.log('[AI] Calling Groq API...');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
     const key = process.env.GROQ_API_KEY;
-    const model = 'qwen/qwen3-32b';
+    const model = 'llama-3.1-8b-instant';
 
     if (!key) {
       throw new Error(`API key for Groq is missing in environment variables.`);
@@ -292,7 +292,33 @@ ${memoryString}
     // Add current user message
     messages.push({ role: 'user', content: sanitizedUserMessage });
 
-    // 4. Interaction Loop to execute tool calls
+    // 4. Dynamic Tool Dispatching - Filter tools based on keywords to minimize token footprint
+    const lowerMsg = (userMessage || '').toLowerCase();
+    const relevantTools = [];
+    
+    // Stocks / Portfolio keywords
+    if (lowerMsg.includes('מני') || lowerMsg.includes('בורסה') || lowerMsg.includes('תיק') || lowerMsg.includes('השקע') || lowerMsg.includes('stock') || lowerMsg.includes('portfolio') || lowerMsg.includes('שוק') || lowerMsg.includes('טבע') || lowerMsg.includes('אפל')) {
+      relevantTools.push(...TOOLS.filter(t => ['getStock', 'getMarketNews', 'analyzeStockTrend', 'addPortfolioHolding', 'removePortfolioHolding', 'getPortfolioPerformance'].includes(t.function.name)));
+    }
+    
+    // Calendar keywords
+    if (lowerMsg.includes('יומן') || lowerMsg.includes('פגיש') || lowerMsg.includes('לוז') || lowerMsg.includes('לו"ז') || lowerMsg.includes('calendar') || lowerMsg.includes('event') || lowerMsg.includes('תזמן') || lowerMsg.includes('פגוש') || lowerMsg.includes('פגישות')) {
+      relevantTools.push(...TOOLS.filter(t => ['listCalendarEvents', 'createCalendarEvent'].includes(t.function.name)));
+    }
+    
+    // Sports keywords
+    if (lowerMsg.includes('ספורט') || lowerMsg.includes('sports') || lowerMsg.includes('פורמולה') || lowerMsg.includes('f1') || lowerMsg.includes('לייקרס') || lowerMsg.includes('lakers') || lowerMsg.includes('nba')) {
+      relevantTools.push(...TOOLS.filter(t => ['getSports'].includes(t.function.name)));
+    }
+    
+    // Memory updates
+    if (lowerMsg.includes('זכור') || lowerMsg.includes('תזכור') || lowerMsg.includes('שמור') || lowerMsg.includes('קרא לי') || lowerMsg.includes('שמי') || lowerMsg.includes('קוראים לי') || lowerMsg.includes('העדפה') || lowerMsg.includes('העדפות') || lowerMsg.includes('קול') || lowerMsg.includes('voice')) {
+      relevantTools.push(...TOOLS.filter(t => ['updateLongTermMemory'].includes(t.function.name)));
+    }
+    
+    const toolsToSend = relevantTools.length > 0 ? relevantTools : undefined;
+
+    // 5. Interaction Loop to execute tool calls
     let loopCount = 0;
     const maxLoops = 5;
 
@@ -300,7 +326,7 @@ ${memoryString}
       loopCount++;
       try {
         console.log(`AI execution loop #${loopCount} for ${chatId}...`);
-        const responseData = await this._callChatEndpoint(messages, TOOLS);
+        const responseData = await this._callChatEndpoint(messages, toolsToSend);
         const choice = responseData.choices?.[0];
         
         if (!choice) {
