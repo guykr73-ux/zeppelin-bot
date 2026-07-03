@@ -2,10 +2,125 @@ import { Firestore } from '@google-cloud/firestore';
 import crypto from 'crypto';
 import fs from 'fs';
 
-// Initialize Firestore
-// In production GCP, it will pick up project credentials automatically.
-// For local emulation, we can configure project ID and use default settings or local emulator.
+// Lightweight drop-in replacement for Firestore using local JSON file
+class FileDb {
+  constructor() {
+    this.filePath = './db.json';
+    if (!fs.existsSync(this.filePath)) {
+      fs.writeFileSync(this.filePath, JSON.stringify({}));
+    }
+  }
+
+  _read() {
+    try {
+      return JSON.parse(fs.readFileSync(this.filePath, 'utf8'));
+    } catch {
+      return {};
+    }
+  }
+
+  _write(data) {
+    fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2));
+  }
+
+  collection(name) {
+    return new FileCollection(this, name);
+  }
+}
+
+class FileCollection {
+  constructor(db, name) {
+    this.db = db;
+    this.name = name;
+  }
+
+  doc(id) {
+    return new FileDoc(this.db, this.name, id);
+  }
+
+  async add(data) {
+    const id = crypto.randomUUID();
+    const doc = new FileDoc(this.db, this.name, id);
+    await doc.set(data);
+    return { id, ...data };
+  }
+
+  orderBy(field, direction) {
+    return this;
+  }
+
+  limit(num) {
+    return this;
+  }
+
+  async get() {
+    const data = this.db._read();
+    const collectionData = data[this.name] || {};
+    const docs = Object.keys(collectionData).map(id => ({
+      id,
+      exists: true,
+      data: () => collectionData[id]
+    }));
+    return {
+      forEach: (callback) => docs.forEach(callback)
+    };
+  }
+}
+
+class FileDoc {
+  constructor(db, collectionName, id) {
+    this.db = db;
+    this.collectionName = collectionName;
+    this.id = id;
+  }
+
+  collection(name) {
+    return new FileCollection(this.db, `${this.collectionName}/${this.id}/${name}`);
+  }
+
+  async get() {
+    const data = this.db._read();
+    const docData = data[this.collectionName]?.[this.id];
+    return {
+      exists: !!docData,
+      data: () => docData || {}
+    };
+  }
+
+  async set(data) {
+    const dbData = this.db._read();
+    if (!dbData[this.collectionName]) {
+      dbData[this.collectionName] = {};
+    }
+    dbData[this.collectionName][this.id] = data;
+    this.db._write(dbData);
+    return { success: true };
+  }
+
+  async update(data) {
+    const dbData = this.db._read();
+    if (!dbData[this.collectionName]) {
+      dbData[this.collectionName] = {};
+    }
+    const current = dbData[this.collectionName][this.id] || {};
+    dbData[this.collectionName][this.id] = { ...current, ...data };
+    this.db._write(dbData);
+    return { success: true };
+  }
+
+  async delete() {
+    const dbData = this.db._read();
+    if (dbData[this.collectionName]?.[this.id]) {
+      delete dbData[this.collectionName][this.id];
+      this.db._write(dbData);
+    }
+    return { success: true };
+  }
+}
+
 let db;
+let isFileDb = false;
+
 const projectId = process.env.FIRESTORE_PROJECT_ID || '';
 const isPlaceholder = !projectId || 
                       projectId.includes('שם_הפרויקט') || 
@@ -13,33 +128,22 @@ const isPlaceholder = !projectId ||
 
 if (process.env.NODE_ENV === 'test' || isPlaceholder) {
   if (isPlaceholder) {
-    console.warn('⚠️ FIRESTORE_PROJECT_ID is empty or a placeholder. Falling back to Mock In-Memory Database for local testing.');
+    console.warn('⚠️ FIRESTORE_PROJECT_ID is empty or a placeholder. Falling back to local JSON FileDb.');
   }
-  // Lightweight mock of Firestore to prevent connection/auth errors during simulation tests and local runs
-  const mockDb = {
-    collection: () => mockDb,
-    doc: () => mockDb,
-    add: async (data) => ({ id: 'mock-doc-123', ...data }),
-    get: async () => ({
-      exists: false,
-      forEach: () => {},
-      data: () => ({})
-    }),
-    gather: async () => ({}),
-    set: async () => ({ success: true }),
-    update: async () => ({ success: true }),
-    delete: async () => ({ success: true }),
-    orderBy: () => mockDb,
-    limit: () => mockDb,
-    limitToLast: () => mockDb
-  };
-  db = mockDb;
+  db = new FileDb();
+  isFileDb = true;
 } else {
-  const firestoreOpts = { projectId };
-  if (fs.existsSync('./service-account-creds.json')) {
-    firestoreOpts.keyFilename = './service-account-creds.json';
+  try {
+    const firestoreOpts = { projectId };
+    if (fs.existsSync('./service-account-creds.json')) {
+      firestoreOpts.keyFilename = './service-account-creds.json';
+    }
+    db = new Firestore(firestoreOpts);
+  } catch (err) {
+    console.error('Failed to initialize Firestore, falling back to local JSON FileDb:', err.message);
+    db = new FileDb();
+    isFileDb = true;
   }
-  db = new Firestore(firestoreOpts);
 }
 
 const ALGORITHM = 'aes-256-cbc';
@@ -104,20 +208,19 @@ class MemoryService {
         });
       });
       
-      // Return in chronological order (oldest to newest)
       return messages.reverse();
     } catch (error) {
       console.error(`Error fetching short-term memory for ${chatId}:`, error.message);
+      if (!isFileDb) {
+        console.warn('⚠️ Switching database to local JSON FileDb fallback...');
+        db = new FileDb();
+        isFileDb = true;
+        return this.getShortTermContext(chatId);
+      }
       return [];
     }
   }
 
-  /**
-   * Append a new message to the short-term context.
-   * @param {string} chatId 
-   * @param {string} role - 'user' | 'assistant'
-   * @param {string} content 
-   */
   async addShortTermMessage(chatId, role, content) {
     try {
       const messagesRef = db.collection('users').doc(chatId).collection('messages');
@@ -128,14 +231,15 @@ class MemoryService {
       });
     } catch (error) {
       console.error(`Error saving short-term message for ${chatId}:`, error.message);
+      if (!isFileDb) {
+        console.warn('⚠️ Switching database to local JSON FileDb fallback...');
+        db = new FileDb();
+        isFileDb = true;
+        return this.addShortTermMessage(chatId, role, content);
+      }
     }
   }
 
-  /**
-   * Get decrypted long-term memory for a user.
-   * @param {string} chatId 
-   * @returns {Promise<Object>} The parsed long-term memory object
-   */
   async getLongTermMemory(chatId) {
     try {
       const docRef = db.collection('users').doc(chatId).collection('profile').doc('longTermMemory');
@@ -154,15 +258,16 @@ class MemoryService {
       return JSON.parse(decryptedStr);
     } catch (error) {
       console.error(`Error fetching long-term memory for ${chatId}:`, error.message);
+      if (!isFileDb) {
+        console.warn('⚠️ Switching database to local JSON FileDb fallback...');
+        db = new FileDb();
+        isFileDb = true;
+        return this.getLongTermMemory(chatId);
+      }
       return {};
     }
   }
 
-  /**
-   * Save long-term memory for a user by encrypting it first.
-   * @param {string} chatId 
-   * @param {Object} memoryObject - The data to encrypt and save
-   */
   async saveLongTermMemory(chatId, memoryObject) {
     try {
       const docRef = db.collection('users').doc(chatId).collection('profile').doc('longTermMemory');
@@ -176,6 +281,12 @@ class MemoryService {
       });
     } catch (error) {
       console.error(`Error saving long-term memory for ${chatId}:`, error.message);
+      if (!isFileDb) {
+        console.warn('⚠️ Switching database to local JSON FileDb fallback...');
+        db = new FileDb();
+        isFileDb = true;
+        return this.saveLongTermMemory(chatId, memoryObject);
+      }
     }
   }
 }
