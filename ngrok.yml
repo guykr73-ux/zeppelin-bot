@@ -1,0 +1,4 @@
+version: "3"
+agent:
+  authtoken: 3FtyB2AQdBCcmiCiU6ZXTwZZoMg_5wVKy6xEzszJMfeoXj45y
+  connect_cas: host

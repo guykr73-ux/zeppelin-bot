@@ -1,0 +1,20 @@
+{
+  "name": "zeppelin-cloud",
+  "version": "1.0.0",
+  "description": "Serverless WhatsApp AI Agent - Zeppelin Cloud Edition",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx @google-cloud/functions-framework --target=whatsappWebhook",
+    "test": "node test/simulate.js"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.10.0",
+    "@google-cloud/functions-framework": "^3.4.2",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "google-tts-api": "^2.0.2",
+    "googleapis": "^173.0.0",
+    "rss-parser": "^3.13.0"
+  }
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "sched_1783072194653_168",
+    "chatId": "972534267163@c.us",
+    "time": "08:00",
+    "frequency": "daily",
+    "actionType": "news_summary",
+    "reminderText": "סיכום חדשות קצר מאתרים מובילים בישראל (Ynet, וואלה) ומהעולם (מזרח ומערב)",
+    "lastTriggeredDate": "",
+    "createdAt": "2026-07-03T09:49:54.653Z"
+  },
+  {
+    "id": "sched_1783072194655_224",
+    "chatId": "972534267163@c.us",
+    "time": "23:00",
+    "frequency": "daily",
+    "actionType": "news_summary",
+    "reminderText": "סיכום חדשות קצר מאתרים מובילים בישראל (Ynet, וואלה) ומהעולם (מזרח ומערב)",
+    "lastTriggeredDate": "",
+    "createdAt": "2026-07-03T09:49:54.655Z"
+  },
+  {
+    "id": "sched_1783072248204_106",
+    "chatId": "972534267163@c.us",
+    "time": "08:00",
+    "frequency": "daily",
+    "actionType": "market_summary",
+    "reminderText": "סיכום בורסות ישראל, ארה״ב והמזרח",
+    "lastTriggeredDate": "",
+    "createdAt": "2026-07-03T09:50:48.204Z"
+  },
+  {
+    "id": "sched_1783072248206_444",
+    "chatId": "972534267163@c.us",
+    "time": "23:00",
+    "frequency": "daily",
+    "actionType": "market_summary",
+    "reminderText": "סיכום בורסות ישראל, ארה״ב והמזרח",
+    "lastTriggeredDate": "",
+    "createdAt": "2026-07-03T09:50:48.206Z"
+  },
+  {
+    "id": "sched_1783072348875_853",
+    "chatId": "972534267163@c.us",
+    "time": "09:00",
+    "frequency": "daily",
+    "actionType": "ai_prompt",
+    "reminderText": "בדוק משחקים קרובים ותוצאות של מכבי תל אביב בכדורסל ולוס אנג'לס לייקרס ב-NBA, ושלח התראה כשעה לפני שמתחיל משחק של מכבי תל אביב.",
+    "lastTriggeredDate": "",
+    "createdAt": "2026-07-03T09:52:28.875Z"
+  },
+  {
+    "id": "sched_1783072415582_190",
+    "chatId": "972534267163@c.us",
+    "time": "09:00",
+    "frequency": "daily",
+    "actionType": "ai_prompt",
+    "reminderText": "בדוק אם יש היום מרוץ, אימון או מקצה דירוג בפורמולה 1. אם כן, ספק עדכון שעה לפני ותכנן מעקב נתונים שוטף עבור אוהד פרארי.",
+    "lastTriggeredDate": "",
+    "createdAt": "2026-07-03T09:53:35.582Z"
+  },
+  {
+    "id": "sched_1783078689346_696",
+    "chatId": "972534267163@c.us",
+    "time": "15:00",
+    "frequency": "daily",
+    "actionType": "custom_reminder",
+    "reminderText": "עוד שעה פגישה עם רונית וליה",
+    "lastTriggeredDate": "2026-07-03",
+    "createdAt": "2026-07-03T11:38:09.346Z"
+  },
+  {
+    "id": "sched_1783097580147_863",
+    "chatId": "972534267163@c.us",
+    "time": "09:00",
+    "frequency": "weekly",
+    "actionType": "ai_prompt",
+    "reminderText": "בדוק עדכונים חשובים מקבוצת פרארי פורמולה 1 (Ferrari F1) וסכם אותם.",
+    "lastTriggeredDate": "",
+    "createdAt": "2026-07-03T16:53:00.147Z"
+  }
+]
