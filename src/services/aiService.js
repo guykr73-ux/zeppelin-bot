@@ -189,29 +189,54 @@ class AiService {
     }
 
     // Groq API Call
-    console.log('[AI] Calling Groq API...');
-    const url = 'https://api.groq.com/openai/v1/chat/completions';
-    const key = process.env.GROQ_API_KEY;
-    const model = 'llama-3.3-70b-versatile';
+    try {
+      console.log('[AI] Calling Groq API (llama-3.3-70b-versatile)...');
+      const url = 'https://api.groq.com/openai/v1/chat/completions';
+      const key = process.env.GROQ_API_KEY;
+      const model = 'llama-3.3-70b-versatile';
 
-    if (!key) {
-      throw new Error(`API key for Groq is missing in environment variables.`);
+      if (!key) {
+        throw new Error(`API key for Groq is missing in environment variables.`);
+      }
+
+      const payload = {
+        model: model,
+        messages: messages,
+        tools: toolsList,
+        tool_choice: 'auto'
+      };
+
+      const headers = {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await axios.post(url, payload, { headers, timeout: 25000 });
+      return response.data;
+    } catch (groqError) {
+      if (groqError.response && groqError.response.status === 429) {
+        console.warn('⚠️ Groq llama-3.3-70b-versatile rate limit reached, falling back to llama-3.1-8b-instant...');
+        const url = 'https://api.groq.com/openai/v1/chat/completions';
+        const key = process.env.GROQ_API_KEY;
+        const model = 'llama-3.1-8b-instant';
+
+        const payload = {
+          model: model,
+          messages: messages,
+          tools: toolsList,
+          tool_choice: 'auto'
+        };
+
+        const headers = {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        };
+
+        const response = await axios.post(url, payload, { headers, timeout: 25000 });
+        return response.data;
+      }
+      throw groqError;
     }
-
-    const payload = {
-      model: model,
-      messages: messages,
-      tools: toolsList,
-      tool_choice: 'auto'
-    };
-
-    const headers = {
-      'Authorization': `Bearer ${key}`,
-      'Content-Type': 'application/json'
-    };
-
-    const response = await axios.post(url, payload, { headers, timeout: 25000 });
-    return response.data;
   }
 
   /**
