@@ -11,145 +11,12 @@ import { interestsService } from './interestsService.js';
 import { portfolioService } from './portfolioService.js';
 
 const TOOLS = [
-  // --- TODO LIST TOOLS ---
+  // --- INFO & STOCK MARKET TOOLS ---
   {
     type: 'function',
     function: {
-      name: 'addTodo',
-      description: 'הוספת משימה לרשימת המטלות של המשתמש (Add a task to the todo list)',
-      parameters: {
-        type: 'object',
-        properties: {
-          task: { type: 'string', description: 'תיאור המשימה לעשייה' },
-          priority: { type: 'string', enum: ['high', 'medium', 'low'], description: 'רמת העדיפות (ברירת מחדל: medium)' }
-        },
-        required: ['task']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'listTodos',
-      description: 'קבלת רשימת כל המשימות הפעילות וההושלמו (List all tasks)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'completeTodo',
-      description: 'סימון משימה כהושלמה (Mark a task as completed)',
-      parameters: {
-        type: 'object',
-        properties: {
-          todoId: { type: 'string', description: 'מזהה המשימה (ID)' }
-        },
-        required: ['todoId']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'deleteTodo',
-      description: 'מחיקת משימה מרשימת המטלות (Delete a task)',
-      parameters: {
-        type: 'object',
-        properties: {
-          todoId: { type: 'string', description: 'מזהה המשימה (ID)' }
-        },
-        required: ['todoId']
-      }
-    }
-  },
-
-  // --- FINANCIAL CALCULATOR ---
-  {
-    type: 'function',
-    function: {
-      name: 'calculateFinance',
-      description: 'חישוב מע"מ והמרת מטבעות לשוק הישראלי (Finance calculator for VAT and currency conversion)',
-      parameters: {
-        type: 'object',
-        properties: {
-          amount: { type: 'number', description: 'הסכום לחישוב' },
-          type: {
-            type: 'string',
-            enum: ['add_vat', 'remove_vat', 'usd_to_ils', 'ils_to_usd'],
-            description: 'סוג החישוב הפיננסי'
-          }
-        },
-        required: ['amount', 'type']
-      }
-    }
-  },
-
-  // --- PANTRY & RECIPES ---
-  {
-    type: 'function',
-    function: {
-      name: 'updatePantry',
-      description: 'עדכון מלאי במזווה - הוספה, עדכון כמות או מחיקה (Update pantry inventory)',
-      parameters: {
-        type: 'object',
-        properties: {
-          item: { type: 'string', description: 'שם המוצר/רכיב (באנגלית, למשל: egg, tomato, pasta)' },
-          quantity: { type: 'number', description: 'הכמות החדשה במלאי (הזנת 0 תמחק את המוצר)' }
-        },
-        required: ['item', 'quantity']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getPantry',
-      description: 'צפייה במלאי המוצרים הקיים במזווה (Get pantry inventory)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'suggestRecipes',
-      description: 'קבלת הצעות למתכונים על בסיס הרכיבים הזמינים במזווה (Suggest recipes based on pantry items)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-
-  // --- SOURDOUGH LOG ---
-  {
-    type: 'function',
-    function: {
-      name: 'logSourdough',
-      description: 'תיעוד שלב באפיית לחם שאור (Log a sourdough baking step/feed)',
-      parameters: {
-        type: 'object',
-        properties: {
-          stage: { type: 'string', description: 'שלב האפייה/האכלה (למשל: starter_feeding, levain, bulk_fermentation, bake)' },
-          durationMinutes: { type: 'number', description: 'משך הזמן בדקות של השלב הנוכחי' },
-          notes: { type: 'string', description: 'הערות נוספות (למשל טמפרטורה, יחס האכלה, קמחים)' }
-        },
-        required: ['stage', 'durationMinutes']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getSourdoughLog',
-      description: 'צפייה ביומן אפיית השאור האחרון (Get sourdough logs)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-
-  // --- INFO SERVICE ---
-  {
-    type: 'function',
-    function: {
-      name: 'getNews',
-      description: 'קבלת עדכוני חדשות RSS בזמן אמת (Get real-time news updates)',
+      name: 'getSports',
+      description: 'קבלת מבזקי ספורט RSS בזמן אמת (Get sports flashes)',
       parameters: { type: 'object', properties: {} }
     }
   },
@@ -170,181 +37,6 @@ const TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'getSports',
-      description: 'קבלת מבזקי ספורט RSS בזמן אמת (Get sports flashes)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-
-  // --- LEARNING SERVICE ---
-  {
-    type: 'function',
-    function: {
-      name: 'addVocab',
-      description: 'שמירת מילה חדשה במילון האישי של המשתמש (Save new vocabulary word)',
-      parameters: {
-        type: 'object',
-        properties: {
-          word: { type: 'string', description: 'המילה בשפת המקור' },
-          translation: { type: 'string', description: 'התרגום לעברית' },
-          notes: { type: 'string', description: 'הערות דקדוק או דוגמה לשימוש במשפט' }
-        },
-        required: ['word', 'translation']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'listVocab',
-      description: 'קבלת אוצר המילים שהמשתמש שמר (List saved vocabulary)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'logMusicPractice',
-      description: 'תיעוד אימון נגינה בכלי נגינה (Log music practice session)',
-      parameters: {
-        type: 'object',
-        properties: {
-          instrument: { type: 'string', description: 'כלי הנגינה (למשל: פסנתר, גיטרה, תופים)' },
-          durationMinutes: { type: 'number', description: 'משך האימון בדקות' },
-          notes: { type: 'string', description: 'מה תורגל, קצב (BPM), קשיים או הישגים' }
-        },
-        required: ['instrument', 'durationMinutes']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getMusicPracticeLogs',
-      description: 'הצגת יומן אימוני הנגינה של המשתמש (Get music practice logs)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-
-  // --- STATE / LONG-TERM MEMORY UPDATE ---
-  {
-    type: 'function',
-    function: {
-      name: 'updateLongTermMemory',
-      description: 'עדכון הזיכרון לטווח ארוך של המשתמש (Update long-term encrypted memory preferences/facts)',
-      parameters: {
-        type: 'object',
-        properties: {
-          key: { type: 'string', description: 'מפתח השדה לעדכון - יש להשתמש תמיד בשם המפתח הליטרלי "key", למשל: "key": "name" או "key": "sourdoughPreferences"' },
-          value: { type: 'string', description: 'הערך החדש לשמירה - יש להשתמש תמיד בשם המפתח הליטרלי "value", למשל: "value": "Zeppelin"' }
-        },
-        required: ['key', 'value']
-      }
-    }
-  },
-  // --- AUTOMATIONS AND SCHEDULER ---
-  {
-    type: 'function',
-    function: {
-      name: 'scheduleAutomation',
-      description: 'תזמון משימה אוטומטית או תזכורת (Schedule a news summary, stock update, todo summary, custom reminder or AI prompt)',
-      parameters: {
-        type: 'object',
-        properties: {
-          time: { type: 'string', description: 'שעת ההרצה בפורמט HH:MM, למשל: "08:00", "23:00"' },
-          frequency: { type: 'string', enum: ['daily', 'weekly'], description: 'תדירות ההרצה (ברירת מחדל: daily)' },
-          actionType: { type: 'string', enum: ['news_summary', 'market_summary', 'todo_summary', 'custom_reminder', 'ai_prompt'], description: 'סוג המשימה להפעלה' },
-          reminderText: { type: 'string', description: 'תוכן התזכורת או הנחיית ה-AI (חובה עבור custom_reminder ו-ai_prompt)' }
-        },
-        required: ['time', 'frequency', 'actionType']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'listAutomations',
-      description: 'הצגת רשימת כל האוטומציות והתזכורות המתוזמנות הפעילות של המשתמש',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'deleteAutomation',
-      description: 'מחיקת אוטומציה או תזכורת מתוזמנת לפי מזהה ID',
-      parameters: {
-        type: 'object',
-        properties: {
-          scheduleId: { type: 'string', description: 'מזהה התזמון למחיקה (ID)' }
-        },
-        required: ['scheduleId']
-      }
-    }
-  },
-  // --- GOOGLE CALENDAR TOOLS ---
-  {
-    type: 'function',
-    function: {
-      name: 'listCalendarEvents',
-      description: 'שליפת אירועים ופגישות קרובות מיומן גוגל של המשתמש (List upcoming Google Calendar events)',
-      parameters: {
-        type: 'object',
-        properties: {
-          maxResults: { type: 'number', description: 'מספר הפגישות המקסימלי לשליפה (ברירת מחדל: 10)' }
-        }
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'createCalendarEvent',
-      description: 'תיאום או יצירת פגישה/אירוע חדש ביומן גוגל (Create a new Google Calendar event/meeting)',
-      parameters: {
-        type: 'object',
-        properties: {
-          summary: { type: 'string', description: 'כותרת או נושא הפגישה (שם האירוע)' },
-          startTime: { type: 'string', description: 'זמן תחילת הפגישה בפורמט ISO 8601 (למשל: 2026-07-03T15:00:00)' },
-          endTime: { type: 'string', description: 'זמן סיום הפגישה בפורמט ISO 8601 (למשל: 2026-07-03T16:00:00)' },
-          description: { type: 'string', description: 'תיאור או פרטים נוספים לפגישה (אופציונלי)' },
-          location: { type: 'string', description: 'מיקום הפגישה או קישור לשיחה (אופציונלי)' }
-        },
-        required: ['summary', 'startTime', 'endTime']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'generateImage',
-      description: 'יצירה או עיצוב תמונה חדשה על בסיס תיאור מפורט. יש להקפיד לתרגם את תיאור המשתמש לאנגלית מפורטת ועשירה (Generate or design a new image. Always translate user description to detailed, rich English prompt)',
-      parameters: {
-        type: 'object',
-        properties: {
-          prompt: { type: 'string', description: 'תיאור התמונה באנגלית מפורטת (Detailed prompt in English)' }
-        },
-        required: ['prompt']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'updateUserInterests',
-      description: 'עדכון תחומי עניין, נושאים מועדפים, סגנון או דברים שעניינו את המשתמש לצורך התאמת המלצות ורעיונות בעתיד (Update user interests or topics they care about for future recommendations)',
-      parameters: {
-        type: 'object',
-        properties: {
-          interestText: { type: 'string', description: 'תחום העניין או הנושא המועדף שהמשתמש הביע בו עניין (e.g. "אפיית לחם שאור", "מניות טכנולוגיה", "סגנון ציור קומיקס")' }
-        },
-        required: ['interestText']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
       name: 'getMarketNews',
       description: 'הצגת כותרות וחדשות שווקים פיננסיים ובורסה מישראל והעולם (Get financial and global market news)',
       parameters: { type: 'object', properties: {} }
@@ -358,7 +50,7 @@ const TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          symbol: { type: 'string', description: 'סימול המניה או המדד. לבורסות גלובליות יש להשתמש בסיומות יאהו פיננסים (e.g. "AAPL" לארה"ב, "TEVA.TA" לתל אביב, "7203.T" ליפן)' },
+          symbol: { type: 'string', description: 'סימול המניה או המדד (e.g. AAPL, TEVA.TA)' },
           range: { type: 'string', enum: ['1mo', '3mo', '6mo', '1y'], description: 'הטווח ההיסטורי לניתוח (ברירת מחדל: "3mo")' }
         },
         required: ['symbol']
@@ -401,6 +93,56 @@ const TOOLS = [
       name: 'getPortfolioPerformance',
       description: 'שליפת תיק ההשקעות וחישוב ביצועים, רווח/הפסד ושווי נוכחי של התיק בזמן אמת (Get portfolio holdings and live performance metrics)',
       parameters: { type: 'object', properties: {} }
+    }
+  },
+
+  // --- GOOGLE CALENDAR TOOLS ---
+  {
+    type: 'function',
+    function: {
+      name: 'listCalendarEvents',
+      description: 'שליפת אירועים ופגישות קרובות מיומן גוגל של המשתמש (List upcoming Google Calendar events)',
+      parameters: {
+        type: 'object',
+        properties: {
+          maxResults: { type: 'number', description: 'מספר הפגישות המקסימלי לשליפה (ברירת מחדל: 10)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createCalendarEvent',
+      description: 'תיאום או יצירת פגישה/אירוע חדש ביומן גוגל (Create a new Google Calendar event/meeting)',
+      parameters: {
+        type: 'object',
+        properties: {
+          summary: { type: 'string', description: 'כותרת או נושא הפגישה (שם האירוע)' },
+          startTime: { type: 'string', description: 'זמן תחילת הפגישה בפורמט ISO 8601 (למשל: 2026-07-03T15:00:00)' },
+          endTime: { type: 'string', description: 'זמן סיום הפגישה בפורמט ISO 8601 (למשל: 2026-07-03T16:00:00)' },
+          description: { type: 'string', description: 'תיאור או פרטים נוספים לפגישה (אופציונלי)' },
+          location: { type: 'string', description: 'מיקום הפגישה או קישור לשיחה (אופציונלי)' }
+        },
+        required: ['summary', 'startTime', 'endTime']
+      }
+    }
+  },
+
+  // --- STATE / LONG-TERM MEMORY UPDATE ---
+  {
+    type: 'function',
+    function: {
+      name: 'updateLongTermMemory',
+      description: 'עדכון הזיכרון לטווח ארוך של המשתמש (Update long-term encrypted memory preferences/facts)',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'מפתח השדה לעדכון - יש להשתמש תמיד בשם המפתח הליטרלי "key", למשל: "key": "name"' },
+          value: { type: 'string', description: 'הערך החדש לשמירה - יש להשתמש תמיד בשם המפתח הליטרלי "value", למשל: "value": "Zeppelin"' }
+        },
+        required: ['key', 'value']
+      }
     }
   }
 ];
@@ -450,7 +192,7 @@ class AiService {
     console.log('[AI] Calling Groq API...');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
     const key = process.env.GROQ_API_KEY;
-    const model = 'llama-3.1-8b-instant';
+    const model = 'llama-3.3-70b-versatile';
 
     if (!key) {
       throw new Error(`API key for Groq is missing in environment variables.`);
