@@ -415,15 +415,45 @@ class AiService {
    */
   async _callChatEndpoint(messages, toolsList) {
     const isGemini = this.provider === 'gemini' && process.env.GEMINI_API_KEY;
-    const url = isGemini
-      ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
-      : 'https://api.groq.com/openai/v1/chat/completions';
     
-    const key = isGemini ? process.env.GEMINI_API_KEY : process.env.GROQ_API_KEY;
-    const model = isGemini ? 'gemini-flash-lite-latest' : 'llama-3.3-70b-versatile';
+    if (isGemini) {
+      try {
+        console.log('[AI] Trying Gemini API...');
+        const url = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+        const key = process.env.GEMINI_API_KEY;
+        const model = 'gemini-flash-lite-latest';
+        
+        const payload = {
+          model: model,
+          messages: messages,
+          tools: toolsList,
+          tool_choice: 'auto'
+        };
+
+        const headers = {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        };
+
+        const response = await axios.post(url, payload, { headers, timeout: 25000 });
+        return response.data;
+      } catch (geminiError) {
+        console.error('[AI] Gemini API failed, falling back to Groq:', geminiError.message);
+        if (geminiError.response) {
+          console.error('Gemini Error Details:', JSON.stringify(geminiError.response.data, null, 2));
+        }
+        // Fall through to Groq
+      }
+    }
+
+    // Groq API Call
+    console.log('[AI] Calling Groq API...');
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
+    const key = process.env.GROQ_API_KEY;
+    const model = 'llama-3.3-70b-versatile';
 
     if (!key) {
-      throw new Error(`API key for provider '${isGemini ? 'gemini' : 'groq'}' is missing in environment variables.`);
+      throw new Error(`API key for Groq is missing in environment variables.`);
     }
 
     const payload = {
