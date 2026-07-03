@@ -2,6 +2,23 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 
+// Remote logging diagnostics buffer
+const logBuffer = [];
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = (...args) => {
+  originalLog(...args);
+  logBuffer.push({ type: 'log', time: new Date().toISOString(), text: args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') });
+  if (logBuffer.length > 100) logBuffer.shift();
+};
+
+console.error = (...args) => {
+  originalError(...args);
+  logBuffer.push({ type: 'error', time: new Date().toISOString(), text: args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') });
+  if (logBuffer.length > 100) logBuffer.shift();
+};
+
 // Bypass TLS/SSL certificate checks to resolve local network/antivirus interception issues
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -20,8 +37,12 @@ import { redactCreditCards } from './src/services/securityFilter.js';
  * @param {Object} res Cloud Function response context.
  */
 export async function whatsappWebhook(req, res) {
-  // Handle GET request for health check / dashboard
+  // Handle GET request for health check / dashboard / logs
   if (req.method === 'GET') {
+    if (req.path === '/logs') {
+      return res.status(200).json(logBuffer);
+    }
+
     // Serve generated media files
     if (req.path.startsWith('/media/')) {
       const filename = path.basename(req.path);
