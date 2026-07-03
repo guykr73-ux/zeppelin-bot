@@ -192,7 +192,7 @@ class AiService {
     console.log('[AI] Calling Groq API...');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
     const key = process.env.GROQ_API_KEY;
-    const model = 'llama-3.3-70b-versatile';
+    const model = 'llama-3.1-8b-instant';
 
     if (!key) {
       throw new Error(`API key for Groq is missing in environment variables.`);
