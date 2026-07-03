@@ -317,8 +317,9 @@ ${memoryString}
       { role: 'system', content: systemPrompt }
     ];
 
-    // Add last 10 messages of history
-    shortTermContext.forEach(msg => {
+    // Add last 4 messages of history to keep context clean and avoid token bloat
+    const recentHistory = shortTermContext.slice(-4);
+    recentHistory.forEach(msg => {
       messages.push({ role: msg.role, content: msg.content });
     });
 
