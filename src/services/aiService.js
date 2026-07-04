@@ -236,8 +236,8 @@ class AiService {
     if (isGemini) {
       try {
         console.log('[AI] Trying Gemini API...');
-        const url = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
         const key = process.env.GEMINI_API_KEY;
+        const url = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${key}`;
         const model = 'gemini-flash-lite-latest';
         
         const payload = {
@@ -339,8 +339,8 @@ class AiService {
     if (process.env.GEMINI_API_KEY) {
       console.warn('⚠️ All Groq keys and models rate limited. Falling back to Gemini as last resort...');
       try {
-        const url = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
         const key = process.env.GEMINI_API_KEY;
+        const url = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${key}`;
         const model = 'gemini-flash-lite-latest';
         const payload = {
           model: model,
