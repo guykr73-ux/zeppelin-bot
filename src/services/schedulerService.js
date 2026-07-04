@@ -124,9 +124,10 @@ class SchedulerService {
       case 'news_summary': {
         const newsResult = await infoService.getNews();
         if (newsResult.success && newsResult.items?.length > 0) {
-          const summary = `📰 *סיכום חדשות אוטומטי* 📰\n\n` + 
-            newsResult.items.map((item, idx) => `*${idx + 1}. ${item.title}*\n${item.summary.replace(/<[^>]*>/g, '').slice(0, 120)}...\n`).join('\n');
-          await whatsappService.sendMessage(chatId, summary);
+          const rawNewsText = newsResult.items.map((item, idx) => `${idx + 1}. ${item.title}: ${item.summary}`).join('\n');
+          const prompt = `הנחיה אוטומטית מתוזמנת: ספק סיכום חדשות מעמיק, מקצועי ובגובה העיניים על בסיס המבזקים הבאים. סדר לפי נושאים מרכזיים (ארץ ועולם): \n${rawNewsText}`;
+          const aiResponse = await aiService.generateResponse(chatId, prompt);
+          await whatsappService.sendMessage(chatId, aiResponse);
         } else {
           await whatsappService.sendMessage(chatId, '📰 *עדכון אוטומטי:* לא הצלחתי לטעון חדשות כעת.');
         }
@@ -138,12 +139,24 @@ class SchedulerService {
         const tickers = ['AAPL', 'GOOG', 'TA35.TA'];
         for (const ticker of tickers) {
           const data = await infoService.getStock(ticker);
+          const trend = await infoService.analyzeStockTrend(ticker, '3mo');
           if (data.success) {
-            result.push(`• *${data.symbol}*: ${data.price} ${data.currency} (${data.changePercent >= 0 ? '+' : ''}${data.changePercent}%)`);
+            result.push({
+              symbol: data.symbol,
+              price: data.price,
+              currency: data.currency,
+              changePercent: data.changePercent,
+              trend: trend.success ? trend.trendDirection : 'N/A'
+            });
           }
         }
-        const message = `📊 *עדכון בורסה אוטומטי* 📊\n\n` + (result.length > 0 ? result.join('\n') : 'לא הצלחתי לשלוף מדדי מניות כעת.');
-        await whatsappService.sendMessage(chatId, message);
+        if (result.length > 0) {
+          const prompt = `הנחיה אוטומטית מתוזמנת: ספק סיכום וניתוח בורסה מעמיק, רציני ומקצועי (בגישת Value Investing של וורן באפט) עבור המדדים והמניות הבאים: \n${JSON.stringify(result, null, 2)}`;
+          const aiResponse = await aiService.generateResponse(chatId, prompt);
+          await whatsappService.sendMessage(chatId, aiResponse);
+        } else {
+          await whatsappService.sendMessage(chatId, '📊 *עדכון אוטומטי:* לא הצלחתי לשלוף מדדי מניות כעת.');
+        }
         break;
       }
 

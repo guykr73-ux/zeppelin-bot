@@ -152,6 +152,73 @@ const TOOLS = [
         required: ['key', 'value']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'updateUserInterests',
+      description: 'עדכון תחומי עניין, נושאים מועדפים, תחביבים או העדפות של המשתמש (Add new user interest to preferred profile)',
+      parameters: {
+        type: 'object',
+        properties: {
+          interestText: { type: 'string', description: 'טקסט תיאור תחום העניין החדש להוסיף (למשל: "אוהד פרארי פורמולה 1", "אוהב אפיית לחמי שאור")' }
+        },
+        required: ['interestText']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'scheduleAutomation',
+      description: 'תזמון אוטומציה או משימה מתוזמנת חדשה במערכת (Create a new scheduled automation task)',
+      parameters: {
+        type: 'object',
+        properties: {
+          time: { type: 'string', description: 'שעת ההרצה בפורמט HH:MM (למשל: "08:00", "23:30")' },
+          frequency: { type: 'string', enum: ['daily', 'weekly'], description: 'תדירות ההרצה (ברירת מחדל: "daily")' },
+          actionType: { type: 'string', enum: ['news_summary', 'market_summary', 'todo_summary', 'custom_reminder', 'ai_prompt'], description: 'סוג הפעולה להרצה' },
+          reminderText: { type: 'string', description: 'תוכן התזכורת או ההנחיה ל-AI (עבור custom_reminder ו-ai_prompt)' }
+        },
+        required: ['time', 'actionType']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listAutomations',
+      description: 'הצגת כל המשימות והאוטומציות המתוזמנות הפעילות כעת במערכת (List all active scheduled automations)',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'deleteAutomation',
+      description: 'מחיקת משימה מתוזמנת או אוטומציה לפי מזהה (Delete a scheduled automation by its ID)',
+      parameters: {
+        type: 'object',
+        properties: {
+          scheduleId: { type: 'string', description: 'מזהה האוטומציה למחיקה (למשל: "sched_1783072194653_168")' }
+        },
+        required: ['scheduleId']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generateImage',
+      description: 'עיצוב ויצירת תמונה אמנותית מרהיבה לפי תיאור מילולי באנגלית ושליחתה בוואטסאפ (Generate an image from an English text prompt and send to user)',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string', description: 'תיאור התמונה באנגלית מפורטת ועשירה (e.g. "A majestic red Ferrari racing through historical Rome streets, cinematic lighting")' }
+        },
+        required: ['prompt']
+      }
+    }
   }
 ];
 
@@ -196,55 +263,79 @@ class AiService {
       }
     }
 
-    // Groq API Call
-    try {
-      console.log('[AI] Calling Groq API (llama-3.3-70b-versatile)...');
-      const url = 'https://api.groq.com/openai/v1/chat/completions';
-      const key = process.env.GROQ_API_KEY;
-      const model = 'llama-3.3-70b-versatile';
+    // Groq API Call with self-healing Key Rotation
+    const groqKeys = [
+      process.env.GROQ_API_KEY,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3
+    ].filter(Boolean);
 
-      if (!key) {
-        throw new Error(`API key for Groq is missing in environment variables.`);
-      }
+    if (groqKeys.length === 0) {
+      throw new Error('API key for Groq is missing in environment variables.');
+    }
 
-      const payload = {
-        model: model,
-        messages: messages,
-        tools: toolsList,
-        tool_choice: 'auto'
-      };
+    let lastError;
 
-      const headers = {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json'
-      };
-
-      const response = await axios.post(url, payload, { headers, timeout: 25000 });
-      return response.data;
-    } catch (groqError) {
-      if (groqError.response && groqError.response.status === 429) {
-        console.warn('⚠️ Groq llama-3.3-70b-versatile rate limit reached, falling back to llama-3.1-8b-instant...');
+    // Phase 1: Try Llama 3.3 70B on all keys
+    for (let i = 0; i < groqKeys.length; i++) {
+      const key = groqKeys[i];
+      console.log(`[AI] Calling Groq API (llama-3.3-70b-versatile) using key #${i + 1}...`);
+      try {
         const url = 'https://api.groq.com/openai/v1/chat/completions';
-        const key = process.env.GROQ_API_KEY;
-        const model = 'qwen/qwen3-32b';
-
+        const model = 'llama-3.3-70b-versatile';
         const payload = {
           model: model,
           messages: messages,
           tools: toolsList,
           tool_choice: 'auto'
         };
-
         const headers = {
           'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json'
         };
-
         const response = await axios.post(url, payload, { headers, timeout: 25000 });
         return response.data;
+      } catch (error) {
+        lastError = error;
+        if (error.response && error.response.status === 429) {
+          console.warn(`⚠️ Groq llama-3.3-70b-versatile key #${i + 1} rate limited (429).`);
+          continue; // Try next key
+        }
+        throw error; // Immediately throw other errors (e.g. 400 Bad Request)
       }
-      throw groqError;
     }
+
+    // Phase 2: Fallback to Llama 3.1 8B on all keys
+    console.warn('⚠️ All Groq Llama 3.3 keys rate limited or failed. Falling back to Llama 3.1 8B...');
+    for (let i = 0; i < groqKeys.length; i++) {
+      const key = groqKeys[i];
+      console.log(`[AI] Calling Groq API (llama-3.1-8b-instant) fallback using key #${i + 1}...`);
+      try {
+        const url = 'https://api.groq.com/openai/v1/chat/completions';
+        const model = 'llama-3.1-8b-instant';
+        const payload = {
+          model: model,
+          messages: messages,
+          tools: toolsList,
+          tool_choice: 'auto'
+        };
+        const headers = {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        };
+        const response = await axios.post(url, payload, { headers, timeout: 25000 });
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        if (error.response && error.response.status === 429) {
+          console.warn(`⚠️ Groq llama-3.1-8b-instant key #${i + 1} rate limited (429).`);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw lastError;
   }
 
   /**
@@ -274,42 +365,54 @@ class AiService {
 
     const memoryString = JSON.stringify(longTermMemory, null, 2);
 
+    let schedulesStr = 'אין אוטומציות מתוזמנות כרגע.';
+    try {
+      const list = schedulerService.listSchedules(chatId);
+      if (list && list.length > 0) {
+        schedulesStr = list.map(s => `- מזהה: ${s.id}, שעה: ${s.time}, תדירות: ${s.frequency}, סוג: ${s.actionType}, תיאור/הנחיה: ${s.reminderText}`).join('\n');
+      }
+    } catch (e) {
+      console.error('Error fetching schedules for prompt:', e.message);
+    }
+
     const systemPrompt = `
 שמך הוא זפלין ("Zeppelin") - עוזר אישי אינטואיטיבי, לומד ועצמאי בגרסת הענן.
-עליך לענות בעברית תמיד, אלא אם פנו אליך בשפה אחרת.
-התשובות שלך צריכות להיות קצרות, מדויקות, ממוקדות וענייניות, ללא חנופה או מילים מיותרות. 
-אל תיזום הצעות פרואקטיביות או אמירות השראה אלא אם התבקשת לכך במפורש.
+עליך לענות בעברית תקנית, רהוטה וטבעית בלבד.
 
-🌐 חוקי שפה וניסוח (קריטי!):
-1. עליך לכתוב בעברית תקנית, רהוטה וטבעית בלבד. הימנע לחלוטין משגיאות כתיב, אותיות משובשות או ניסוחים לא ברורים.
-2. אל תערבב מילים באנגלית בתוך משפטים בעברית! תרגם מונחים באנגלית לעברית בצורה טבעית (למשל, במקום "nail design" או "nail art" השתמש ב"עיצוב ציפורניים", ובמקום "quiz" השתמש ב"חידון" או "מבחן").
-3. ודא שהטקסט זורם ונוח לקריאה בעברית, ללא מבנה משפט המושפע מתרגום מילולי מאנגלית.
+🧠 קווי יסוד לאישיות שלך (קריטי!):
+1. סמכות אינטלקטואלית (IQ 200): אתה מבין לעומק בכל תחומי החיים - מדע, ספרות, פוליטיקה, תרבות וקולינריה. נתח כל סוגיה במקצועיות רבה ובחריפות, אך תמיד בגובה העיניים ובנימוק רהוט, ללא התנשאות.
+2. חבר ומורה לחיים (EQ גבוה): גלה אמפתיה, תבונה רגשית והקשבה. דע להדריך, להציע פתרונות יצירתיים ולחלוק ידע ממקום של שותפות אמיתית.
+3. כתיבה חדה וממוקדת: התשובות שלך צריכות להיות קצרות ומדויקות (לרוב תחת 6-8 שורות), ממוקדות וענייניות, ללא חנופה או מילים מיותרות.
+4. איסור מוחלט על ערבוב אנגלית: אל תערבב מילים באנגלית בתוך משפטים בעברית! תרגם מונחים מאנגלית לעברית בצורה טבעית.
 
 התאריך והשעה הנוכחיים בישראל:
 - יום: ${weekday}
 - תאריך: ${localDate}
 - שעה: ${localTime}
-(השתמש בתאריך זה כדי לחשב זמנים יחסיים כמו "היום", "מחר", "עוד שעה" וכו' עבור היומן).
 
-🛑 הגבלות אבטחה ופרטיות חמורות (חובה לציית תמיד!):
-1. הגנת כרטיסי אשראי: אין לבקש, לעבד, לשמור או להציג מספרי כרטיסי אשראי או פרטי תשלום רגישים. אם המשתמש מוסר אותם, התעלם מהם לחלוטין. הם נמחקים אוטומטית על ידי מסנן האבטחה בשרת.
-2. בידוד דפדפן ואפליקציות בנקים: אין לך שום יכולת או רשות לגשת לדפדפן המשתמש, להכניס סיסמאות או קודים, או לפעול בתוך אפליקציות הבנק. אל תנסה לטעון שאתה מסוגל לבצע פעולות אלו! לזאפלין אין שום גישה פיזית למכשיר או לחשבונות המשתמש.
-3. ⚠️ איסור כתיבת פקודות הרצת כלים כטקסט: אל תכתוב פקודות של הרצת כלים (למשל: <function...>, function=... או תבניות דומות) כטקסט חופשי בתוך התשובה שלך למשתמש! עליך להשתמש אך ורק ביכולת ה-Tool Calling המובנית של ה-API.
+🛑 הגבלות אבטחה:
+1. כרטיסי אשראי: אין להציג או לבקש מספרי כרטיסי אשראי.
+2. פקודות כלים כטקסט: אל תכתוב פקודות כלים (<function...>) כטקסט חופשי בתשובתך! השתמש אך ורק במנגנון ה-Tool Calling המובנה של ה-API.
 
-תחומי עניין מועדפים של המשתמש (לצורך התאמת המלצות ורעיונות עתידיות):
+תחומי עניין של המשתמש:
 ${interestsStr}
 
-הזיכרון לטווח ארוך שלך אודות המשתמש (נתונים שמורים):
+הזיכרון לטווח ארוך:
 ${memoryString}
 
-יש לך גישה למגוון כלים (מניות, ספורט, יומן גוגל ועדכון הזיכרון לטווח ארוך).
-כאשר המשתמש מבקש פעולה רלוונטית, הפעל את הכלי המתאים!
-- עבור שאלות ספורט, ובמיוחד עדכוני פורמולה 1 (Formula 1), עליך להשתמש בכלי 'getSports' (המאחזר נתונים ישירות מ-Sky Sports F1 ומקורות ספורט נוספים).
-- עבור מניות והמלצות השקעה בתיק: עליך לנתח את התיק וביצועי המניות כמשנֶה בכיר של וורן באפט (Warren Buffett). השתמש בגישת Value Investing, התמקד בשווי פנימי, שולי ביטחון (Margin of Safety), חפיר תחרותי (Moat), עמידות פיננסית, תשואה על ההון (ROE), יציבות תזרימית ורמות תמחור יחסיות לתמיכה/התנגדות היסטוריות. תן המלצות מקצועיות ומעמיקות של מומחה השקעות בכיר מאוד לקנייה/מכירה/דילול/החזקה.
-- אם המשתמש משתף איתך מניות שיש לו, הצע להוסיף אותן לתיק בעזרת הכלי 'addPortfolioHolding'.
-- אם המשתמש רוצה לדעת מה מצב התיק שלו או לקבל המלצות לשיפור, השתמש בכלי 'getPortfolioPerformance' ובצע עליו את הניתוח האנליטי הבכיר שלך.
-אם המשתמש מספר לך פרט חדש וחשוב עליו, השתמש בכלי 'updateLongTermMemory' כדי לעדכן שדה מתאים בזיכרון לטווח ארוך (למשל: העדפה לענות בהודעות קוליות 'voiceReplyEnabled' או פרטי זיכרון אחרים).
-אם המשתמש מספר לך על משהו שעניין אותו, נושא מועדף, סגנון עיצוב שאהב, או תחביב חדש - השתמש בכלי 'updateUserInterests' כדי לשמור זאת!
+האוטומציות והמשימות המתוזמנות הפעילות כעת במערכת:
+${schedulesStr}
+
+יש לך גישה לכלים הבאים. הפעל אותם אך ורק באמצעות מנגנון ה-Tool Calling המובנה של ה-API:
+- listAutomations: הצגת כל המשימות והאוטומציות המתוזמנות הפעילות כעת במערכת.
+- scheduleAutomation: תזמון משימה מתוזמנת או אוטומציה חדשה (למשל: סיכומי חדשות/בורסה/משימות, או תזכורות).
+- deleteAutomation: מחיקת משימה מתוזמנת או אוטומציה לפי מזהה.
+- getNews: קבלת מבזקי חדשות RSS מעודכנים.
+- getSports: קבלת מבזקי ספורט RSS (כולל פורמולה 1).
+- getStock / getMarketNews / analyzeStockTrend / addPortfolioHolding / getPortfolioPerformance: ניהול וניתוח מניות בגישת Value Investing (וורן באפט).
+- listCalendarEvents / createCalendarEvent: ניהול פגישות ביומן גוגל.
+- updateLongTermMemory / updateUserInterests: עדכון העדפות, זיכרון ותחומי עניין.
+- generateImage: עיצוב ויצירת תמונות מרהיבות לפי תיאור באנגלית.
     `.trim();
 
     // 3. Assemble chat message history for the LLM
@@ -318,7 +421,7 @@ ${memoryString}
     ];
 
     // Add last 4 messages of history to keep context clean and avoid token bloat
-    const recentHistory = shortTermContext.slice(-4);
+    const recentHistory = shortTermContext.slice(-12);
     recentHistory.forEach(msg => {
       messages.push({ role: msg.role, content: msg.content });
     });
@@ -346,13 +449,23 @@ ${memoryString}
     }
     
     // General news keywords
-    if (lowerMsg.includes('חדש') || lowerMsg.includes('עדכ') || lowerMsg.includes('אוטומצי') || lowerMsg.includes('news')) {
+    if (lowerMsg.includes('חדש') || lowerMsg.includes('עדכ') || lowerMsg.includes('news')) {
       relevantTools.push(...TOOLS.filter(t => ['getNews'].includes(t.function.name)));
     }
 
-    // Memory updates
-    if (lowerMsg.includes('זכור') || lowerMsg.includes('תזכור') || lowerMsg.includes('שמור') || lowerMsg.includes('קרא לי') || lowerMsg.includes('שמי') || lowerMsg.includes('קוראים לי') || lowerMsg.includes('העדפה') || lowerMsg.includes('העדפות') || lowerMsg.includes('קול') || lowerMsg.includes('voice')) {
-      relevantTools.push(...TOOLS.filter(t => ['updateLongTermMemory'].includes(t.function.name)));
+    // Automations / schedules keywords
+    if (lowerMsg.includes('אוטומצי') || lowerMsg.includes('תזמן') || lowerMsg.includes('תזמון') || lowerMsg.includes('משימ') || lowerMsg.includes('מתוזמ') || lowerMsg.includes('schedule') || lowerMsg.includes('automation')) {
+      relevantTools.push(...TOOLS.filter(t => ['scheduleAutomation', 'listAutomations', 'deleteAutomation'].includes(t.function.name)));
+    }
+
+    // Image generation
+    if (lowerMsg.includes('תמונה') || lowerMsg.includes('צייר') || lowerMsg.includes('עצב תמונה') || lowerMsg.includes('image') || lowerMsg.includes('generate') || lowerMsg.includes('picture')) {
+      relevantTools.push(...TOOLS.filter(t => ['generateImage'].includes(t.function.name)));
+    }
+
+    // Memory / Interests updates
+    if (lowerMsg.includes('זכור') || lowerMsg.includes('תזכור') || lowerMsg.includes('שמור') || lowerMsg.includes('קרא לי') || lowerMsg.includes('שמי') || lowerMsg.includes('קוראים לי') || lowerMsg.includes('העדפה') || lowerMsg.includes('העדפות') || lowerMsg.includes('קול') || lowerMsg.includes('voice') || lowerMsg.includes('עניין') || lowerMsg.includes('תחביב') || lowerMsg.includes('אהב') || lowerMsg.includes('אוהב')) {
+      relevantTools.push(...TOOLS.filter(t => ['updateLongTermMemory', 'updateUserInterests'].includes(t.function.name)));
     }
     
     const toolsToSend = relevantTools.length > 0 ? relevantTools : undefined;
