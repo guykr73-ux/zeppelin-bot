@@ -335,6 +335,30 @@ class AiService {
       }
     }
 
+    // Phase 3: Last resort fallback to Google Gemini to avoid any organization rate limits
+    if (process.env.GEMINI_API_KEY) {
+      console.warn('⚠️ All Groq keys and models rate limited. Falling back to Gemini as last resort...');
+      try {
+        const url = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+        const key = process.env.GEMINI_API_KEY;
+        const model = 'gemini-flash-lite-latest';
+        const payload = {
+          model: model,
+          messages: messages,
+          tools: toolsList,
+          tool_choice: 'auto'
+        };
+        const headers = {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        };
+        const response = await axios.post(url, payload, { headers, timeout: 25000 });
+        return response.data;
+      } catch (geminiError) {
+        console.error('⚠️ Last resort fallback to Gemini failed:', geminiError.message);
+      }
+    }
+
     throw lastError;
   }
 
